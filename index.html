@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Imagem Completo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            text-align: center;
+        }
+
+        canvas {
+            max-width: 100%;
+            border: 2px solid #333;
+            margin-top: 20px;
+            background-color: #fff;
+        }
+
+        .controls {
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .controls input[type="file"] {
+            margin: 10px 0;
+        }
+
+        .controls input[type="range"], .controls button, .controls select {
+            margin: 5px 0;
+            width: 90%;
+        }
+
+        .controls label {
+            display: block;
+            margin-top: 10px;
+        }
+
+        .button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 80%;
+        }
+
+        .button:hover {
+            background-color: #45a049;
+        }
+
+        .button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .effects-container {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-evenly;
+        }
+
+        .effects-container button {
+            margin: 5px;
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .download {
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .controls input[type="range"], .controls button {
+                width: 90%;
+            }
+
+            canvas {
+                max-width: 100%;
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Editor de Imagem Completo</h1>
+        
+        <input type="file" id="fileInput" accept="image/*" class="button" onchange="loadImage(event)">
+        
+        <canvas id="canvas"></canvas>
+
+        <div class="controls">
+            <label for="brightness">Brilho:</label>
+            <input type="range" id="brightness" min="-100" max="100" value="0" step="1" onchange="applyFilters()">
+            
+            <label for="contrast">Contraste:</label>
+            <input type="range" id="contrast" min="-100" max="100" value="0" step="1" onchange="applyFilters()">
+            
+            <label for="saturation">Saturação:</label>
+            <input type="range" id="saturation" min="-100" max="100" value="0" step="1" onchange="applyFilters()">
+            
+            <label for="hue">Matiz:</label>
+            <input type="range" id="hue" min="-180" max="180" value="0" step="1" onchange="applyFilters()">
+            
+            <label for="blur">Desfoque:</label>
+            <input type="range" id="blur" min="0" max="10" value="0" step="0.1" onchange="applyFilters()">
+            
+            <label for="rotate">Rotação (Graus):</label>
+            <input type="range" id="rotate" min="0" max="360" value="0" step="1" onchange="applyTransformations()">
+            
+            <label for="scale">Escala:</label>
+            <input type="range" id="scale" min="0.1" max="3" value="1" step="0.1" onchange="applyTransformations()">
+            
+            <label for="opacity">Opacidade:</label>
+            <input type="range" id="opacity" min="0" max="100" value="100" step="1" onchange="applyFilters()">
+            
+            <label for="invert">Inverter Cores:</label>
+            <input type="checkbox" id="invert" onchange="applyFilters()">
+            
+            <button class="button" onclick="resetImage()">Redefinir</button>
+            
+            <label for="text">Texto:</label>
+            <input type="text" id="text" placeholder="Digite seu texto" onchange="applyText()">
+            
+            <button class="button" onclick="clearText()">Limpar Texto</button>
+            
+            <div class="effects-container">
+                <button class="button" onclick="applyGrayscale()">Escala de Cinza</button>
+                <button class="button" onclick="applySepia()">Sepia</button>
+                <button class="button" onclick="applyInvert()">Inverter Cores</button>
+                <button class="button" onclick="applyNegative()">Efeito Negativo</button>
+                <button class="button" onclick="applyPolaroid()">Polaroid</button>
+                <button class="button" onclick="applyVintage()">Vintage</button>
+            </div>
+
+            <div class="download">
+                <button class="button" onclick="downloadImage()">Baixar Imagem</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let canvas = document.getElementById("canvas");
+        let ctx = canvas.getContext("2d");
+        let image = new Image();
+        let imgWidth, imgHeight;
+        let currentText = "";
+
+        function loadImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    image.onload = function() {
+                        imgWidth = image.width;
+                        imgHeight = image.height;
+                        canvas.width = imgWidth;
+                        canvas.height = imgHeight;
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(image, 0, 0);
+                    };
+                    image.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function applyFilters() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.filter = `
+                brightness(${document.getElementById("brightness").value + 100}%)
+                contrast(${document.getElementById("contrast").value + 100}%)
+                saturate(${document.getElementById("saturation").value + 100}%)
+                hue-rotate(${document.getElementById("hue").value}deg)
+                blur(${document.getElementById("blur").value}px)
+                opacity(${document.getElementById("opacity").value / 100})
+            `;
+            ctx.drawImage(image, 0, 0);
+            if (document.getElementById("invert").checked) {
+                ctx.filter += "invert(100%)";
+            }
+            applyText();
+        }
+
+        function applyTransformations() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate((document.getElementById("rotate").value) * Math.PI / 180);
+            ctx.scale(document.getElementById("scale").value, document.getElementById("scale").value);
+            ctx.drawImage(image, -imgWidth / 2, -imgHeight / 2);
+            ctx.restore();
+        }
+
+        function applyText() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(image, 0, 0);
+            ctx.font = "30px Arial";
+            ctx.fillStyle = "white";
+            ctx.fillText(document.getElementById("text").value, 50, 50);
+        }
+
+        function clearText() {
+            document.getElementById("text").value = "";
+            applyText();
+        }
+
+        function resetImage() {
+            document.getElementById("brightness").value = 0;
+            document.getElementById("contrast").value = 0;
+            document.getElementById("saturation").value = 0;
+            document.getElementById("hue").value = 0;
+            document.getElementById("blur").value = 0;
+            document.getElementById("rotate").value = 0;
+            document.getElementById("scale").value = 1;
+            document.getElementById("opacity").value = 100;
+            document.getElementById("invert").checked = false;
+            document.getElementById("text").value = "";
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(image, 0, 0);
+        }
+
+        function applyGrayscale() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.filter = "grayscale(100%)";
+                ctx.drawImage(image, 0, 0);
+            }
+
+            function applySepia() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.filter = "sepia(100%)";
+                ctx.drawImage(image, 0, 0);
+            }
+
+            function applyInvert() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.filter = "invert(100%)";
+                ctx.drawImage(image, 0, 0);
+            }
+
+            function applyNegative() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.filter = "invert(100%)";
+                ctx.drawImage(image, 0, 0);
+            }
+
+            function applyPolaroid() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.filter = "contrast(110%) sepia(30%)";
+                ctx.drawImage(image, 0, 0);
+            }
+
+            function applyVintage() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.filter = "sepia(70%) saturate(80%)";
+                ctx.drawImage(image, 0, 0);
+            }
+
+            function downloadImage() {
+                const link = document.createElement('a');
+                link.download = 'imagem_editada.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }
+        </script>
+    </body>
+</html>
